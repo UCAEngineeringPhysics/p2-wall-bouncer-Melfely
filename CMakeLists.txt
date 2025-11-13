@@ -23,12 +23,12 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2_w CACHE STRING "Board type")
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(p2-wall-bouncer C CXX ASM)
+project(p2 C CXX ASM)
 
 set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 
@@ -37,29 +37,25 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(p2-wall-bouncer p2-wall-bouncer.cpp GPIO GPIO.cpp PWM PWM.cpp DriveTrain DriveTrain.cpp Sensor Sensor.cpp)
+add_executable(p2 p2.cpp GPIO GPIO.cpp PWM PWM.cpp DriveTrain DriveTrain.cpp Sensor Sensor.cpp)
 
-pico_set_program_name(p2-wall-bouncer "p2-wall-bouncer")
-pico_set_program_version(p2-wall-bouncer "0.1")
+pico_set_program_name(p2 "p2")
+pico_set_program_version(p2 "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(p2-wall-bouncer 0)
-pico_enable_stdio_usb(p2-wall-bouncer 1)
+pico_enable_stdio_uart(p2 0)
+pico_enable_stdio_usb(p2 0)
 
 # Add the standard library to the build
-target_link_libraries(p2-wall-bouncer
+target_link_libraries(p2
+        hardware_pwm
+        pico_multicore
         pico_stdlib)
 
 # Add the standard include files to the build
-target_include_directories(p2-wall-bouncer PRIVATE
+target_include_directories(p2 PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
-# Add any user requested libraries
-target_link_libraries(p2-wall-bouncer 
-        hardware_pwm
-        pico_multicore
-        )
-
-pico_add_extra_outputs(p2-wall-bouncer)
+pico_add_extra_outputs(p2)
 
