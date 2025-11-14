@@ -12,15 +12,13 @@
 
 #pragma region 
 volatile std::atomic<int> mode = 0;
-static float workTime = 0;
-uint64_t buttonHoldStart_us; 
+static std::atomic<float> workTime = 0;
+
 GPIO::BUTTON mainButton(15, false);
 
 
 #pragma region Function Headers
-void mainButtonModeChange_callback(uint pin, uint32_t events);
-void mainButtonHold_callback(uint pin, uint32_t events);
-void mainButtonInterupt_init();
+void mainButton_callback(uint32_t eventMask);
 
 int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA);
 
@@ -71,7 +69,7 @@ int main()
 
         
         if (mode % 2 == 0) {
-        #pragma region Pause Mode
+        #pragma region Pause Mode Core 1
 
             if(workTime < 45) {
                 redLed.SetState(0);
@@ -107,7 +105,7 @@ int main()
             }
         #pragma endregion
         } else {
-        #pragma region Work Mode
+        #pragma region Work Mode Core 1
            
             workStart_us = time_us_64();
             
@@ -138,9 +136,9 @@ int main()
 void mainButton_callback(uint32_t eventMask) 
 {
     static alarm_id_t alarmHoldID;
+    static uint64_t buttonHoldStart_us; 
     if (mainButton.GetState()) {
         buttonHoldStart_us = time_us_64();
-        //Start waiting for the edge fall callback.
         alarm_pool_init_default();
         alarmHoldID = add_alarm_in_ms(3000, &alarmHoldRestart_callback, NULL, true);
     } else {
@@ -158,12 +156,47 @@ int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA) {
 
 void core1_main() {
 
+    Drivetrain::DualMotor Drive(12, 7, 9, 8, 15, 13, 14);
+    Sensor::Distance DistanceSensor(1, 0);
+    Sensor::MotorEncoder RightMotorEncoder(17, 16);
+
+    const float baseSpeed = 0.0;
+    float speed = baseSpeed;
+
+    bool needsToTurn = false;
     mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, mainButton_callback);
 
     multicore_fifo_push_blocking(72);//Let Core0 know I am started
 
     while (true) {
-        __wfi(); //Wait for interupts. 
+        #pragma region Pause Mode Core 2
+        if (mode % 2 == 0) {
+            Drive.Stop();
+            Drive.SetState(0);
+            float test = RightMotorEncoder.LinearVelocity();
+        #pragma endregion
+        } else {
+            #pragma region Work Mode Core 1
+            if (workTime < 55) { speed = baseSpeed;}
+            else { speed = baseSpeed / 2;}
+            float distance = DistanceSensor.GetDistance();
+            Drive.SetState(1);
+           if (distance > 0.5 || distance == -1 && !needsToTurn) {
+                Drive.Forward(speed);
+            } else if (!needsToTurn){
+                needsToTurn = true;
+                Drive.Backward(speed);
+            } else {
+                Drive.SpinLeft(speed);
+                if (distance > 0.5) {
+                    needsToTurn = false;
+                }
+            }
+        }
+        #pragma endregion
+        sleep_ms(10);
     }
+    Drive.Stop();
+    Drive.SetState(0);
 }
 #pragma endregion
