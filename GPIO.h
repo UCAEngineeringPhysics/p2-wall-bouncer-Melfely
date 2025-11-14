@@ -29,7 +29,7 @@ namespace GPIO
 
             virtual void SetPulls(bool PullUp, bool PullDown);
 
-            void SetIRQ(uint32_t eventMask, irq_handler_t handler);
+            void SetIRQ(uint32_t eventMask, std::function<void(uint32_t)> callback);
 
             void DisableIRQ();
 
@@ -40,13 +40,12 @@ namespace GPIO
             uint64_t timeAtLastCall_us= 0;
             float timePassed = 0;
 
-            irq_handler_t handler;
-            uint32_t eventMask;
             
 
         private:
+            static std::function<void(uint32_t)> pinCallBack[NUM_BANK0_GPIOS];
 
-            
+            static void MasterCallback(uint, uint32_t);
 
     };
 
@@ -77,9 +76,10 @@ namespace GPIO
 
             using PIN::GetState;
             using PIN::GetPin;
+            using PIN::DisableIRQ;
+            using PIN::SetIRQ;
         private:
 
     };
 } //Namespace GPIO
-
 #endif

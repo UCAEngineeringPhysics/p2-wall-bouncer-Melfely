@@ -15,7 +15,7 @@ volatile std::atomic<int> mode = 0;
 static float workTime = 0;
 uint64_t buttonHoldStart_us; 
 GPIO::BUTTON mainButton(15, false);
-alarm_id_t alarmHoldID;
+
 
 #pragma region Function Headers
 void mainButtonModeChange_callback(uint pin, uint32_t events);
@@ -135,26 +135,18 @@ int main()
 #pragma endregion
 
 #pragma region Functions
-void mainButtonHold_callback(uint pin, uint32_t events) 
+void mainButton_callback(uint32_t eventMask) 
 {
-    buttonHoldStart_us = time_us_64();
-    //Start waiting for the edge fall callback.
-    alarm_pool_init_default();
-    alarmHoldID = add_alarm_in_ms(3000, &alarmHoldRestart_callback, NULL, true);
-    gpio_set_irq_enabled_with_callback(mainButton.GetPin(), GPIO_IRQ_EDGE_FALL, true, &mainButtonModeChange_callback);
-    
-}
-
-void mainButtonModeChange_callback(uint pin, uint32_t events) {
-    mode++;
-    cancel_alarm(alarmHoldID);
-    gpio_set_irq_enabled_with_callback(mainButton.GetPin(), GPIO_IRQ_EDGE_RISE, true, &mainButtonHold_callback);
-
-}
-
-void mainButtonInterupt_init() {
-    
-    gpio_set_irq_enabled_with_callback(mainButton.GetPin(), GPIO_IRQ_EDGE_RISE, true, &mainButtonHold_callback);
+    static alarm_id_t alarmHoldID;
+    if (mainButton.GetState()) {
+        buttonHoldStart_us = time_us_64();
+        //Start waiting for the edge fall callback.
+        alarm_pool_init_default();
+        alarmHoldID = add_alarm_in_ms(3000, &alarmHoldRestart_callback, NULL, true);
+    } else {
+        mode++;
+        cancel_alarm(alarmHoldID);
+    }
 }
 
 int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA) {
@@ -166,7 +158,7 @@ int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA) {
 
 void core1_main() {
 
-    mainButtonInterupt_init();//Init the mainButton interupt chain
+    mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, mainButton_callback);
 
     multicore_fifo_push_blocking(72);//Let Core0 know I am started
 

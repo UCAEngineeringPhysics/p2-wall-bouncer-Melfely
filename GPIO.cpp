@@ -8,6 +8,7 @@
 GPIO::PIN::PIN(uint pin, bool output = true)
 : pinID(pin)
 {
+    gpio_set_irq_callback(&MasterCallback);
     //Init the pin for Led Control
     gpio_init(pinID);
     gpio_set_dir(pinID, output);
@@ -17,7 +18,7 @@ GPIO::PIN::PIN(uint pin, bool output = true)
 /// @param pin the pin for the PWM GPIO Init
 GPIO::PIN::PIN(uint pin) : pinID(pin)
 {
-
+    gpio_set_irq_callback(&MasterCallback);
 }
 
 /// @brief Toggles the state of the pin, in output mode.
@@ -56,30 +57,34 @@ void GPIO::PIN::ToggleEvery(float seconds) {
     }
 }
 
-/// @brief Sets the pull directions, you can set both to true or false, or any other combination.
-/// @param PullUp is this pull up?
-/// @param PullDown is this pull down?
 void GPIO::PIN::SetPulls(bool PullUp, bool PullDown){
     gpio_set_pulls(pinID, PullUp, PullDown);
 }
 
-/// @brief Assigns a raw handler to this method, you will need to ackonlwedge the IRQ in your handler. YOU MAY ONLY DECLARE ONE
-/// @param eventMask the eventmask that will be used to call the handler
-/// @param handler the handler to call when the events trigger, remember to acknowledge the IRQ, and make sure its only being called by the correct event with a check.
-void GPIO::PIN::SetIRQ(uint32_t eventMask, irq_handler_t handler) {
-    gpio_add_raw_irq_handler(pinID, handler);
+/// @brief Define the static callback array
+std::function<void(uint32_t)> GPIO::PIN::pinCallBack[NUM_BANK0_GPIOS];
+
+void GPIO::PIN::SetIRQ(uint32_t eventMask, std::function<void(uint32_t)> callback) {
+    pinCallBack[pinID] = callback;
+
     gpio_set_irq_enabled(pinID, eventMask, true);
-    this->handler = handler;
-    this->eventMask = eventMask;
 }
 
-/// @brief deletes all information related to the IRQ handler, and disables all forms of IRQ for that pin, just in case.
 void GPIO::PIN::DisableIRQ() {
-    gpio_remove_raw_irq_handler(pinID, handler);
+    pinCallBack[pinID] = nullptr;
     gpio_set_irq_enabled(pinID, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE | GPIO_IRQ_LEVEL_HIGH | GPIO_IRQ_LEVEL_LOW, false);
-    this->handler = nullptr;
-    this->eventMask = -1;
+
 }
+
+void GPIO::PIN::MasterCallback(uint pin, uint32_t eventMask) {
+    
+    if (pinCallBack[pin]) {
+        pinCallBack[pin](eventMask);
+    }
+
+}
+
+
 
 #pragma endregion
 
