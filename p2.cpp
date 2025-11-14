@@ -164,7 +164,7 @@ void core1_main() {
     float speed = baseSpeed;
 
     bool needsToTurn = false;
-    mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, mainButton_callback);
+    mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, &mainButton_callback);
 
     multicore_fifo_push_blocking(72);//Let Core0 know I am started
 
@@ -181,7 +181,7 @@ void core1_main() {
             else { speed = baseSpeed / 2;}
             float distance = DistanceSensor.GetDistance();
             Drive.SetState(1);
-           if (distance > 0.5 || distance == -1 && !needsToTurn) {
+           if ((distance > 0.5 || distance == -1) && !needsToTurn) {
                 Drive.Forward(speed);
             } else if (!needsToTurn){
                 needsToTurn = true;

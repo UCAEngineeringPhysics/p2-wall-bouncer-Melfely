@@ -9,6 +9,7 @@ GPIO::PIN::PIN(uint pin, bool output = true)
 : pinID(pin)
 {
     gpio_set_irq_callback(&MasterCallback);
+    irq_set_enabled(IO_IRQ_BANK0, true);
     //Init the pin for Led Control
     gpio_init(pinID);
     gpio_set_dir(pinID, output);
