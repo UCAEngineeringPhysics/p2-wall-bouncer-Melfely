@@ -14,7 +14,7 @@
 volatile std::atomic<int> mode = 0;
 static std::atomic<float> workTime = 0;
 
-GPIO::BUTTON mainButton(15, false);
+GPIO::BUTTON mainButton(5, false);
 
 
 #pragma region Function Headers
@@ -157,13 +157,13 @@ int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA) {
 void core1_main() {
 
     Drivetrain::DualMotor Drive(12, 7, 9, 8, 15, 13, 14);
-    Sensor::Distance DistanceSensor(1, 0);
+    Sensor::Distance DistanceSensor(3, 2);
     Sensor::MotorEncoder RightMotorEncoder(17, 16);
 
-    const float baseSpeed = 0.0;
+    const float baseSpeed = 0.6;
     float speed = baseSpeed;
 
-    bool needsToTurn = false;
+    int needsToTurn = 0;
     mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, &mainButton_callback);
 
     multicore_fifo_push_blocking(72);//Let Core0 know I am started
@@ -174,22 +174,25 @@ void core1_main() {
             Drive.Stop();
             Drive.SetState(0);
             float test = RightMotorEncoder.LinearVelocity();
+            printf(" Distance: %.2f \n",DistanceSensor.GetDistance());
         #pragma endregion
         } else {
             #pragma region Work Mode Core 1
-            if (workTime < 55) { speed = baseSpeed;}
+            if (workTime < 45) { speed = baseSpeed;}
             else { speed = baseSpeed / 2;}
             float distance = DistanceSensor.GetDistance();
             Drive.SetState(1);
-           if ((distance > 0.5 || distance == -1) && !needsToTurn) {
+
+           if ((distance > 0.55 || distance == -1) && needsToTurn == 0) {
                 Drive.Forward(speed);
-            } else if (!needsToTurn){
-                needsToTurn = true;
+            } else if (needsToTurn <= 60){
+                needsToTurn++;
                 Drive.Backward(speed);
             } else {
+                needsToTurn++;
                 Drive.SpinLeft(speed);
-                if (distance > 0.5) {
-                    needsToTurn = false;
+                if (needsToTurn >= 100) {
+                    needsToTurn = 0;
                 }
             }
         }
