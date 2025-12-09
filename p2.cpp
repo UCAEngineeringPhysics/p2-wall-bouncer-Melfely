@@ -16,6 +16,10 @@ static std::atomic<float> workTime = 0;
 
 GPIO::BUTTON mainButton(5, false);
 
+GPIO::LED redLed(28);
+PWM::LED blueLed(26);
+PWM::LED greenLed(27);
+
 
 #pragma region Function Headers
 void mainButton_callback(uint32_t eventMask);
@@ -30,14 +34,13 @@ void core1_main();
 int main()
 {
     
-    GPIO::LED redLed(28);
-    PWM::LED blueLed(26);
-    PWM::LED greenLed(27);
+    
     uint64_t workStart_us = 0;
     float idleFadeCycle = 0;
     float lowPowerWarnCycle = 0;
 
-    //Init this I guess? It comes in the project
+    //Init the default configurations
+    //This turns on UART.
     stdio_init_all();
     
     //Launch core1
@@ -46,24 +49,7 @@ int main()
     //Wait for core1 to fully init
     multicore_fifo_pop_blocking();
 
-    if (mainButton.GetState() == 0) {
-        for (int i = 0; i < 200; i++) {
-            redLed.ToggleEvery(.1);
-            blueLed.ToggleEvery(.1);
-            greenLed.ToggleEvery(.1);
-
-            sleep_ms(10);
-        }
-        redLed.SetState(0);
-        blueLed.SetState(0);
-        greenLed.SetState(0);
-    } else {
-        for(int i = 0; i < 100; i++) {
-            redLed.ToggleEvery(.2);
-            sleep_ms(10);
-        }
-        watchdog_reboot(0,0,0);
-    }
+    
 
     while (true) {
 
@@ -165,6 +151,26 @@ void core1_main() {
 
     int needsToTurn = 0;
     mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, &mainButton_callback);
+
+    if (mainButton.GetState() == 0 && DistanceSensor.GetDistance() > 0 ) {
+        for (int i = 0; i < 200; i++) {
+            redLed.ToggleEvery(.1);
+            blueLed.ToggleEvery(.1);
+            greenLed.ToggleEvery(.1);
+
+            sleep_ms(10);
+        }
+        redLed.SetState(0);
+        blueLed.SetState(0);
+        greenLed.SetState(0);
+    } else {
+        for(int i = 0; i < 100; i++) {
+            redLed.ToggleEvery(.2);
+            sleep_ms(10);
+        }
+        watchdog_reboot(0,0,0);
+    }
+
 
     multicore_fifo_push_blocking(72);//Let Core0 know I am started
 
