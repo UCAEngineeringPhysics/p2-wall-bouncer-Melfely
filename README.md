@@ -102,4 +102,12 @@ Major required components are listed below:
 #### 3.4 (4%) Energy Efficient Path Planning 
 > The goal is using this robot to cover a rectangle-shape area.
 > Do your research, make reasonable assumptions and propose a path pattern for the robot to follow.
-> Please state why this pattern is energy efficient.  
+> Please state why this pattern is energy efficient.
+
+ Using a "Zig-Zag" pattern with a small ammount of overlap. 
+
+ Its best to run parallel to the longest side of the rectangular area, since it will reduce the number of turns.
+ 
+ There will be 2 turns per row past the first that need to be acomplished, alongside a short translation, the translation will be the width of the robot/tool minus the overlap amount.
+
+
