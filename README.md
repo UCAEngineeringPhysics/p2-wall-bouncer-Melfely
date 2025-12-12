@@ -89,6 +89,8 @@ Major required components are listed below:
 > - You may want to checkout TechDraw of FreeCAD. Other CAD software should have the similar tools.  
 > - Hand drawings are acceptable.
 
+![TechDrawing](mechanicalDigram.svg)
+
 #### 3.2 (10%) Wiring Diagram: attach a drawing to illustrate electrical components' wiring.
 - Specify power wires using red and black wires.
 - Mark out employed signal pins' names.

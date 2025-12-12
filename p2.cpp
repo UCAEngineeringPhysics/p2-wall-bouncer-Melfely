@@ -14,7 +14,7 @@
 volatile std::atomic<int> mode = 0;
 static std::atomic<float> workTime = 0;
 
-GPIO::BUTTON mainButton(5, false);
+GPIO::BUTTON mainButton(22, false);
 
 GPIO::LED redLed(28);
 PWM::LED blueLed(26);
@@ -142,15 +142,16 @@ int64_t alarmHoldRestart_callback(alarm_id_t event, void* USERDATA) {
 
 void core1_main() {
 
-    Drivetrain::DualMotor Drive(12, 7, 9, 8, 15, 13, 14);
-    Sensor::Distance DistanceSensor(3, 2);
-    Sensor::MotorEncoder RightMotorEncoder(17, 16);
+    Drivetrain::DualMotor Drive(12, 16, 17, 18, 15, 14, 13);
+    Sensor::Distance DistanceSensor(9, 8);
 
     const float baseSpeed = 0.6;
     float speed = baseSpeed;
 
     int needsToTurn = 0;
     mainButton.SetIRQ(GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, &mainButton_callback);
+
+    sleep_ms(500); //Give time for the distance sensor to react
 
     if (mainButton.GetState() == 0 && DistanceSensor.GetDistance() > 0 ) {
         for (int i = 0; i < 200; i++) {
@@ -179,7 +180,6 @@ void core1_main() {
         if (mode % 2 == 0) {
             Drive.Stop();
             Drive.SetState(0);
-            float test = RightMotorEncoder.LinearVelocity();
             printf(" Distance: %.2f \n",DistanceSensor.GetDistance());
         #pragma endregion
         } else {
